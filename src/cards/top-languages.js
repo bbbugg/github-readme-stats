@@ -298,6 +298,7 @@ const createCompactLangNode = ({
  * @param {number} props.totalSize Total size of all languages.
  * @param {boolean=} props.hideProgress Whether to hide percentage.
  * @param {string=} props.statsFormat Stats format
+ * @param {number=} props.width Card width
  * @returns {string} Programming languages SVG node.
  */
 const createLanguageTextNode = ({
@@ -305,6 +306,7 @@ const createLanguageTextNode = ({
   totalSize,
   hideProgress,
   statsFormat,
+  width = DEFAULT_CARD_WIDTH,
 }) => {
   const longestLang = getLongestLang(langs);
   const chunked = chunkArray(langs, langs.length / 2);
@@ -327,7 +329,7 @@ const createLanguageTextNode = ({
   });
 
   const percent = ((longestLang.size / totalSize) * 100).toFixed(2);
-  const minGap = 150;
+  const minGap = Math.max(120, width * 0.41);
   const maxGap = 20 + measureText(`${longestLang.name} ${percent}%`, 11);
   return flexLayout({
     items: layouts,
@@ -450,6 +452,7 @@ const renderCompactLayout = (
         totalSize: totalLanguageSize,
         hideProgress,
         statsFormat,
+        width,
       })}
     </g>
   `;
