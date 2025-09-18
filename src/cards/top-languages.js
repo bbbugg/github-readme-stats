@@ -917,7 +917,7 @@ const renderTopLanguages = (topLangs, options = {}) => {
     }
     .bold { font-weight: 700 }
     .lang-name {
-      font: 400 11px "Segoe UI", Ubuntu, Sans-Serif;
+      font: 700 11px "Segoe UI", Ubuntu, Sans-Serif;
       fill: ${colors.textColor};
     }
     .stagger {
