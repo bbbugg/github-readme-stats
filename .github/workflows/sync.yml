@@ -2,69 +2,42 @@ name: Upstream Sync
 
 permissions:
   contents: write
-  issues: write
   actions: write
 
 on:
-  # 每2小时运行一次
   schedule:
     - cron: '0 12 * * *'
-  # 允许手动触发
   workflow_dispatch:
 
 jobs:
   sync_latest_from_upstream:
     name: Sync latest commits from upstream repo
     runs-on: ubuntu-latest
-    # 确保这是一个 fork 仓库
-    # if: ${{ github.event.repository.fork }}
 
     steps:
-      # 步骤1: 检出你的仓库代码
       - name: Checkout target repo
         uses: actions/checkout@v4
-
-      # 步骤2: 清理之前可能存在的失败通知 Issue
-      - name: Clean issue notice
-        uses: actions-cool/issues-helper@v3
         with:
-          actions: 'close-issues'
-          labels: '🚨 Sync Fail'
+          token: ${{ secrets.MY_PAT }}
+          ref: master
+          fetch-depth: 0
 
-      # 步骤3: 同步上游仓库的变更
-      - name: Sync upstream changes
+      - name: Setup Git User
+        run: |
+          git config --global user.name "bbbugg"
+          git config --global user.email "daming20120101@163.com"
+
+      - name: Manual Sync upstream changes
         id: sync
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
-        with:
-          # 关键修改点 1: 上游仓库地址
-          upstream_sync_repo: anuraghazra/github-readme-stats
-          
-          # 关键修改点 2: 上游仓库的分支
-          upstream_sync_branch: master
-          
-          # 关键修改点 3: 你的仓库要同步的分支
-          target_sync_branch: master
-          
-          # 无需修改: 使用 GitHub 自动生成的 Token
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
-          
-          # 设置为 false 以实际执行同步
-          test_mode: false
-
-      # 步骤4: 如果同步失败，创建一个 Issue 进行提醒
-      - name: Create issue on sync failure
-        if: failure()
-        uses: actions-cool/issues-helper@v3
-        with:
-          actions: 'create-issue'
-          title: '🚨 同步失败 | Sync Fail'
-          labels: '🚨 Sync Fail'
-          # 关键修改点 4: 更新失败提示信息
-          body: |
-            自动同步上游仓库 [anuraghazra/github-readme-stats](${upstream_repo_url}) 时发生错误。
-
-            这可能是因为上游仓库的 workflow 文件发生了变更，导致 GitHub 自动暂停了计划任务。
-            
-            请检查 Actions 日志以获取详细错误信息，并考虑手动同步一次来解决问题。
-
-            [upstream_repo_url]: https://github.com/anuraghazra/github-readme-stats
+        run: |
+          set -e
+          git remote add upstream https://github.com/anuraghazra/github-readme-stats.git || true
+          git fetch upstream master
+          git checkout master
+          git merge upstream/master --no-ff -m "Action: 自动同步上游代码"
+          if git diff --name-only --diff-filter=U | grep -q . ; then
+            echo "Merge conflict detected in master branch. Files need manual resolution:"
+            git diff --name-only --diff-filter=U
+            exit 1
+          fi
+          git push origin master --force-with-lease=master:origin/master
